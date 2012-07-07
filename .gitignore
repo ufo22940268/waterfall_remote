@@ -1,0 +1,12 @@
+ant.properties
+bin
+build.xml
+local.properties
+proguard-project.txt
+project.properties
+tests/ant.properties
+tests/bin
+tests/build.xml
+tests/local.properties
+tests/proguard-project.txt
+tests/project.properties
