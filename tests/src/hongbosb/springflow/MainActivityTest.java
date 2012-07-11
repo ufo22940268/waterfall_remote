@@ -18,4 +18,9 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         super("hongbosb.springflow", MainActivity.class);
     }
 
+    public void testDivide() throws Exception {
+        LazyScrollView view = new LazyScrollView(getActivity(), null);
+        assertEquals(4, view.getFallCnt());
+        assertTrue(view.getFallWidth() <= LazyScrollView.EXPECTED_WIDTH && view.getFallWidth() > 0);
+    }
 }
