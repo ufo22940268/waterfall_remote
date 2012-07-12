@@ -17,11 +17,11 @@ public class LazyScrollView extends ScrollView {
 
     public LazyScrollView (Context context, AttributeSet attr) {
         super(context, attr);
+        initDivideInfo(getContext());
     }
 
     @Override
     protected void onFinishInflate() {
-        initDivideInfo(getContext());
         addVerticalLayouts();
     }
 

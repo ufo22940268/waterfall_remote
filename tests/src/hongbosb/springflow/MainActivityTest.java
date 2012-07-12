@@ -1,6 +1,7 @@
 package hongbosb.springflow;
 
 import android.test.ActivityInstrumentationTestCase2;
+import android.widget.ImageView;
 
 /**
  * This is a simple framework for a test of an Application.  See
@@ -22,5 +23,20 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         LazyScrollView view = new LazyScrollView(getActivity(), null);
         assertEquals(4, view.getFallCnt());
         assertTrue(view.getFallWidth() <= LazyScrollView.EXPECTED_WIDTH && view.getFallWidth() > 0);
+    }
+
+    public void testLoadImage() throws Exception {
+        ImageView view = new ImageView(getActivity());
+
+        ItemLoader loader = new ItemLoader(getActivity());
+        loader.loadImage(view, "images/1.jpg");
+
+        try {
+            Thread.sleep(500);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        assertNotNull(view.getDrawable());
     }
 }
