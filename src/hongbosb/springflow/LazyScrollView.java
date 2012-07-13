@@ -7,11 +7,16 @@ import android.view.WindowManager;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
+import android.widget.ImageView;
 
 public class LazyScrollView extends ScrollView {
 
     private int mFallCnt;
     private int mFallWidth;
+
+    private String[] mFiles;
+    private ItemLoader mLoader;
+    private ViewGroup[] mFalls;
 
     static public final int EXPECTED_WIDTH = 150;
 
@@ -23,10 +28,13 @@ public class LazyScrollView extends ScrollView {
     @Override
     protected void onFinishInflate() {
         addVerticalLayouts();
+        mFiles = LoadUtils.listAssets(getContext());
+        mLoader = new ItemLoader(getContext());
     }
 
     private void addVerticalLayouts() {
         ViewGroup container = (ViewGroup)this.findViewById(R.id.container);
+        mFalls = new ViewGroup[mFallCnt];
 
         for (int i = 1; i <= mFallCnt; i ++)  {
             ViewGroup fall = 
@@ -34,8 +42,27 @@ public class LazyScrollView extends ScrollView {
             LayoutParams param = new LayoutParams(mFallWidth, LayoutParams.MATCH_PARENT);
             fall.setLayoutParams(param);
             fall.setId(i);
+            mFalls[i - 1] = fall;
             container.addView(fall);
         }
+    }
+
+    public void addImage(ImageView view, int pos) {
+        setImageWidth(view);
+
+        ViewGroup parent = getFall(pos);        
+        parent.addView(view);
+
+        mLoader.loadImage(view, mFiles[pos]);
+    }
+
+    private void setImageWidth(ImageView view) {
+        LayoutParams lp = new LayoutParams(mFallWidth, LayoutParams.WRAP_CONTENT);
+        view.setLayoutParams(lp);
+    }
+
+    private ViewGroup getFall(int pos) {
+        return mFalls[pos%mFallCnt];
     }
 
     private void initDivideInfo(Context context) {

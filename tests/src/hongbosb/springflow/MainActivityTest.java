@@ -2,6 +2,9 @@ package hongbosb.springflow;
 
 import android.test.ActivityInstrumentationTestCase2;
 import android.widget.ImageView;
+import android.os.Message;
+
+import java.util.Arrays;
 
 /**
  * This is a simple framework for a test of an Application.  See
@@ -26,17 +29,33 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     public void testLoadImage() throws Exception {
+        ItemLoader loader = new ItemLoader(getActivity());
+        testOneImage(loader,  "images/1.jpg");
+        testOneImage(loader,  "images/1.jpg");
+    }
+
+    private void testOneImage(ItemLoader loader, String fileName) {
+        //TODO still need to find a better way to test handler.
         ImageView view = new ImageView(getActivity());
 
-        ItemLoader loader = new ItemLoader(getActivity());
-        loader.loadImage(view, "images/1.jpg");
+        loader.loadImage(view, fileName);
 
-        try {
-            Thread.sleep(500);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        Message msg = new Message();
+        msg.what = ItemLoader.MESSAGE_REQUEST_LOAD;
+        loader.handleMessage(msg);
+
+        TestUtils.sleep();
+
+        msg = new Message();
+        msg.what = ItemLoader.MESSAGE_REFRESH_VIEW;
+        loader.handleMessage(msg);
 
         assertNotNull(view.getDrawable());
+    }
+
+    public void testListFiles() throws Exception {
+        String[] files = LoadUtils.listAssets(getActivity());
+        System.out.println("++++++++++++++++++++" + Arrays.toString(files) + "++++++++++++++++++++");
+        assertTrue(files.length > 10);
     }
 }

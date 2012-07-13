@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.*;
 import android.graphics.*;
 import android.content.Context;
+import android.widget.LinearLayout.LayoutParams;
 
 import java.lang.ref.SoftReference;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +23,7 @@ public class ItemLoader implements Callback{
 
     private LoaderThread mLoaderThread;
 
-    private Handler mMainHandler = new Handler(this);
+    private Handler mMainHandler;
 
     private Context mContext;
 
@@ -31,12 +32,14 @@ public class ItemLoader implements Callback{
         mPendingMap = new ConcurrentHashMap<ImageView, String>();
         mContext = context;
 
-        //mMainHandler = new Handler(this);
+        mMainHandler = new Handler(this);
     }
     
     public void loadImage(ImageView view, String path) {
-        if (getBitmapFromCache(path) != null) {
-            view.setImageBitmap(getBitmapFromCache(path));
+        Bitmap bitmap = getBitmapFromCache(path);
+        if (bitmap != null) {
+            view.setImageBitmap(bitmap);
+            setImageParams(view, bitmap);
         } else {
             mPendingMap.put(view, path);
             requestLoading();
@@ -52,13 +55,11 @@ public class ItemLoader implements Callback{
     }
 
     private void requestLoading() {
-        System.out.println("++++++++++++++++++++1:" + "1" + "++++++++++++++++++++");
         mMainHandler.sendEmptyMessage(MESSAGE_REQUEST_LOAD);
     }
 
     @Override
     public boolean handleMessage(Message msg) {
-        //TODO Don't know why this method won't receive the message send from previous method.
         switch (msg.what) {
             case MESSAGE_REQUEST_LOAD:
                 if (mLoaderThread == null) {
@@ -79,11 +80,22 @@ public class ItemLoader implements Callback{
         for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
             String path = entry.getValue();
             ImageView view = entry.getKey();
-            if (getBitmapFromCache(path) != null) {
-                view.setImageBitmap(getBitmapFromCache(path));
+            Bitmap bitmap = getBitmapFromCache(path);
+            if (bitmap != null) {
+                view.setImageBitmap(bitmap);
+                setImageParams(view, bitmap);
             }
         }
         
+    }
+
+    private void setImageParams(ImageView view, Bitmap bitmap) {
+        int height = bitmap.getHeight();
+        int width = bitmap.getWidth();
+        int fallWidth = view.getWidth();
+
+        LayoutParams lp = new LayoutParams(fallWidth, height/width*fallWidth);
+        view.setLayoutParams(lp);
     }
 
     private class LoaderThread extends HandlerThread implements Callback {
