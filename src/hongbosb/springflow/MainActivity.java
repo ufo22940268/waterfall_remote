@@ -21,7 +21,7 @@ public class MainActivity extends Activity
 
     private void addAllImages() {
         LayoutInflater inflater = LayoutInflater.from(this);
-        for (int i = 0; i < 30; i ++) {
+        for (int i = 0; i < 40; i ++) {
             ImageView view = (ImageView)inflater.inflate(R.layout.item, null);
             mContainerView.addImage(view, i);
         }

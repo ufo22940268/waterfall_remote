@@ -76,6 +76,14 @@ public class ItemLoader implements Callback{
         return true;
     }
 
+    private boolean containsInCache(String path) {
+        if (mCacheMap.get(path) != null && mCacheMap.get(path).get() != null) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     private void refreshViews() {
         for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
             String path = entry.getValue();
@@ -84,17 +92,19 @@ public class ItemLoader implements Callback{
             if (bitmap != null) {
                 view.setImageBitmap(bitmap);
                 setImageParams(view, bitmap);
+            } else {
+                view.setImageResource(R.drawable.loading);
             }
         }
         
     }
 
     private void setImageParams(ImageView view, Bitmap bitmap) {
-        int height = bitmap.getHeight();
-        int width = bitmap.getWidth();
-        int fallWidth = view.getWidth();
+        float height = bitmap.getHeight();
+        float width = bitmap.getWidth();
+        float fallWidth = view.getWidth();
 
-        LayoutParams lp = new LayoutParams(fallWidth, height/width*fallWidth);
+        LayoutParams lp = new LayoutParams((int)fallWidth, (int)(height/width*fallWidth));
         view.setLayoutParams(lp);
     }
 
@@ -110,7 +120,7 @@ public class ItemLoader implements Callback{
         public boolean handleMessage(Message msg) {
             for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
                 String path = entry.getValue();
-                if (mCacheMap.get(path) == null) {
+                if (!containsInCache(path)) {
                     mCacheMap.put(path, new SoftReference(decodeBitmap(path)));
                 }
             }
@@ -130,7 +140,12 @@ public class ItemLoader implements Callback{
         private Bitmap decodeBitmap(String path) {
             try {
                 InputStream in = mContext.getResources().getAssets().open(path);
-                return BitmapFactory.decodeStream(in);
+                Bitmap result = BitmapFactory.decodeStream(in);
+
+                if (in != null) {
+                    in.close();
+                }
+                return result;
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -47,13 +47,13 @@ public class LazyScrollView extends ScrollView {
         }
     }
 
-    public void addImage(ImageView view, int pos) {
+    public void addImage(ImageView view, int index) {
         setImageWidth(view);
 
-        ViewGroup parent = getFall(pos);        
+        ViewGroup parent = getFall(index);        
         parent.addView(view);
 
-        mLoader.loadImage(view, mFiles[pos]);
+        mLoader.loadImage(view, mFiles[index]);
     }
 
     private void setImageWidth(ImageView view) {

@@ -56,6 +56,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     public void testListFiles() throws Exception {
         String[] files = LoadUtils.listAssets(getActivity());
         System.out.println("++++++++++++++++++++" + Arrays.toString(files) + "++++++++++++++++++++");
-        assertTrue(files.length > 10);
+        assertTrue(files.length > 30);
     }
 }

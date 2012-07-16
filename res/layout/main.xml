@@ -3,6 +3,7 @@
     android:id="@+id/lazy_scroll"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
+    android:fillViewport="true"
     >
 
     <LinearLayout
