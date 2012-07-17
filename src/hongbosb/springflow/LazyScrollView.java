@@ -18,6 +18,8 @@ public class LazyScrollView extends ScrollView {
     private ItemLoader mLoader;
     private ViewGroup[] mFalls;
 
+    private static boolean sLoadingFinished = false;
+
     static public final int EXPECTED_WIDTH = 150;
 
     public LazyScrollView (Context context, AttributeSet attr) {
@@ -30,6 +32,60 @@ public class LazyScrollView extends ScrollView {
         addVerticalLayouts();
         mFiles = LoadUtils.listAssets(getContext());
         mLoader = new ItemLoader(getContext());
+
+        startLoadingImages();
+    }
+
+    private void startLoadingImages() {
+        sLoadingFinished = false;
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        for (int i = 0; i < 10; i ++) {
+            ImageView view = (ImageView)inflater.inflate(R.layout.item, null);
+            addImage(view, i);
+        }
+    }
+
+    public static void continueLoading() {
+        sLoadingFinished = true;
+    }
+
+    private int getMaxFallHeight() {
+        int max = 0;
+        for (int i = 0; i < mFalls.length; i ++) {
+            max = Math.max(mFalls[i].getHeight(), max);
+        }
+        return max;
+    }
+
+    @Override
+    protected void onScrollChanged(int l, int t, int ol, int ot) {
+        if (sLoadingFinished) {
+            recycle(t);
+            startLoadingImages();
+        }
+    }
+
+
+    private void recycle(int top) {
+        int recY = top - getScreenHeight();   
+        if (recY < 0) {
+            return;
+        } else {
+            for (int i = 0; i < mFalls.length; i ++) {
+                ViewGroup parent = mFalls[i];
+                int sum = 0;
+                for (int j = 0; j < parent.getChildCount(); j ++) {
+                    ImageView view = (ImageView)parent.getChildAt(j);
+                    sum += view.getHeight();
+                    if (sum <= recY) {
+                        view.setImageBitmap(null);
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private void addVerticalLayouts() {
@@ -47,13 +103,13 @@ public class LazyScrollView extends ScrollView {
         }
     }
 
-    public void addImage(ImageView view, int index) {
+    private void addImage(ImageView view, int index) {
         setImageWidth(view);
 
         ViewGroup parent = getFall(index);        
         parent.addView(view);
 
-        mLoader.loadImage(view, mFiles[index]);
+        mLoader.loadImage(view, mFiles[index%(mFiles.length)]);
     }
 
     private void setImageWidth(ImageView view) {
@@ -79,6 +135,11 @@ public class LazyScrollView extends ScrollView {
     private int getScreenWidth(Context context) {
         WindowManager manager = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
         return manager.getDefaultDisplay().getWidth();
+    }
+
+    private int getScreenHeight() {
+        WindowManager manager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
+        return manager.getDefaultDisplay().getHeight();
     }
 
     public int getFallCnt() {

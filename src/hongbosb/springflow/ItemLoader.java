@@ -76,7 +76,7 @@ public class ItemLoader implements Callback{
         return true;
     }
 
-    private boolean containsInCache(String path) {
+    private synchronized boolean containsInCache(String path) {
         if (mCacheMap.get(path) != null && mCacheMap.get(path).get() != null) {
             return true;
         } else {
@@ -92,11 +92,19 @@ public class ItemLoader implements Callback{
             if (bitmap != null) {
                 view.setImageBitmap(bitmap);
                 setImageParams(view, bitmap);
+
+                mPendingMap.remove(view);
+                mCacheMap.remove(path);
             } else {
                 view.setImageResource(R.drawable.loading);
             }
         }
-        
+
+        if (mPendingMap.size() == 0) {
+            LazyScrollView.continueLoading();
+        } else {
+            requestLoading();
+        }
     }
 
     private void setImageParams(ImageView view, Bitmap bitmap) {
@@ -117,17 +125,22 @@ public class ItemLoader implements Callback{
         }
 
         @Override
-        public boolean handleMessage(Message msg) {
-            for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
-                String path = entry.getValue();
-                if (!containsInCache(path)) {
-                    mCacheMap.put(path, new SoftReference(decodeBitmap(path)));
+            public boolean handleMessage(Message msg) {
+                for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
+                    String path = entry.getValue();
+                    if (!containsInCache(path)) {
+                        try {
+                            Bitmap bitmap = decodeBitmap(path);
+                            mCacheMap.put(path, new SoftReference(bitmap));
+                        } catch (OutOfMemoryError e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
-            }
 
-            mMainHandler.sendEmptyMessage(MESSAGE_REFRESH_VIEW);
-            return true;
-        }
+                mMainHandler.sendEmptyMessage(MESSAGE_REFRESH_VIEW);
+                return true;
+            }
 
         private void requestLoading() {
             if (mLoaderHandler == null) {
