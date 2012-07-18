@@ -153,14 +153,12 @@ public class ItemLoader implements Callback{
                 for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
                     String path = entry.getValue();
                     BitmapRef cacheRef = mCacheMap.get(path);
-                    if (!cacheRef.loaded()) {
-                        try {
-                            Bitmap bitmap = decodeBitmap(path);
-                            cacheRef.set(bitmap);
-                            cacheRef.status = BitmapRef.LOADED;
-                        } catch (OutOfMemoryError e) {
-                            e.printStackTrace();
-                        }
+                    try {
+                        Bitmap bitmap = decodeBitmap(path);
+                        cacheRef.set(bitmap);
+                        cacheRef.status = BitmapRef.LOADED;
+                    } catch (OutOfMemoryError e) {
+                        e.printStackTrace();
                     }
                 }
 
