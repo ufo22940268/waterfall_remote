@@ -18,7 +18,6 @@ public class LazyScrollView extends ScrollView {
     private ItemLoader mLoader;
     private ViewGroup[] mFalls;
 
-    private static boolean sLoadingFinished = false;
 
     static public final int EXPECTED_WIDTH = 150;
 
