@@ -99,12 +99,6 @@ public class ItemLoader implements Callback{
                 view.setImageResource(R.drawable.loading);
             }
         }
-
-        if (mPendingMap.size() == 0) {
-            LazyScrollView.continueLoading();
-        } else {
-            requestLoading();
-        }
     }
 
     private void setImageParams(ImageView view, Bitmap bitmap) {

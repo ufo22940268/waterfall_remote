@@ -18,7 +18,6 @@ public class LazyScrollView extends ScrollView {
     private ItemLoader mLoader;
     private ViewGroup[] mFalls;
 
-
     static public final int EXPECTED_WIDTH = 150;
 
     public LazyScrollView (Context context, AttributeSet attr) {
@@ -27,26 +26,20 @@ public class LazyScrollView extends ScrollView {
     }
 
     @Override
-    protected void onFinishInflate() {
-        addVerticalLayouts();
-        mFiles = LoadUtils.listAssets(getContext());
-        mLoader = new ItemLoader(getContext());
+        protected void onFinishInflate() {
+            addVerticalLayouts();
+            mFiles = LoadUtils.listAssets(getContext());
+            mLoader = new ItemLoader(getContext());
 
-        startLoadingImages();
-    }
+            startLoadingImages();
+        }
 
     private void startLoadingImages() {
-        sLoadingFinished = false;
-
         LayoutInflater inflater = LayoutInflater.from(getContext());
         for (int i = 0; i < 10; i ++) {
             ImageView view = (ImageView)inflater.inflate(R.layout.item, null);
             addImage(view, i);
         }
-    }
-
-    public static void continueLoading() {
-        sLoadingFinished = true;
     }
 
     private int getMaxFallHeight() {
@@ -59,9 +52,18 @@ public class LazyScrollView extends ScrollView {
 
     @Override
     protected void onScrollChanged(int l, int t, int ol, int ot) {
-        if (sLoadingFinished) {
-            recycle(t);
+        if (bottomMeeted(t)) {
+            //recycle(t);
             startLoadingImages();
+        }
+    }
+
+    private boolean bottomMeeted(int top) {
+        int maxHeight = getMaxFallHeight();
+        if (maxHeight == top + getScreenHeight()) {
+            return true;
+        } else {
+            return false;
         }
     }
 
