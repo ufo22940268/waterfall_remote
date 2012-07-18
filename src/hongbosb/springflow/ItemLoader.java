@@ -19,7 +19,7 @@ public class ItemLoader implements Callback{
     static public final int MESSAGE_REFRESH_VIEW = 1;
 
     private ConcurrentHashMap<ImageView, String> mPendingMap;
-    private ConcurrentHashMap<String, SoftReference<Bitmap>> mCacheMap;
+    private ConcurrentHashMap<String, BitmapRef> mCacheMap;
 
     private LoaderThread mLoaderThread;
 
@@ -28,7 +28,7 @@ public class ItemLoader implements Callback{
     private Context mContext;
 
     public ItemLoader(Context context) {
-        mCacheMap = new ConcurrentHashMap<String, SoftReference<Bitmap>>();
+        mCacheMap = new ConcurrentHashMap<String, BitmapRef>();
         mPendingMap = new ConcurrentHashMap<ImageView, String>();
         mContext = context;
 
@@ -42,13 +42,15 @@ public class ItemLoader implements Callback{
             setImageParams(view, bitmap);
         } else {
             mPendingMap.put(view, path);
+            mCacheMap.put(path, new BitmapRef());
             requestLoading();
         }
     }
 
     private Bitmap getBitmapFromCache(String path) {
-        if (mCacheMap.get(path) != null && mCacheMap.get(path).get() != null) {
-            return mCacheMap.get(path).get();
+        BitmapRef ref = mCacheMap.get(path);
+        if (ref != null) {
+            return ref.get();
         } else {
             return null;
         }
@@ -76,14 +78,6 @@ public class ItemLoader implements Callback{
         return true;
     }
 
-    private synchronized boolean containsInCache(String path) {
-        if (mCacheMap.get(path) != null && mCacheMap.get(path).get() != null) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     private void refreshViews() {
         for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
             String path = entry.getValue();
@@ -92,18 +86,11 @@ public class ItemLoader implements Callback{
             if (bitmap != null) {
                 view.setImageBitmap(bitmap);
                 setImageParams(view, bitmap);
-
                 mPendingMap.remove(view);
-                mCacheMap.remove(path);
             } else {
                 view.setImageResource(R.drawable.loading);
+                requestLoading();
             }
-        }
-
-        if (mPendingMap.size() == 0) {
-            LazyScrollView.continueLoading();
-        } else {
-            requestLoading();
         }
     }
 
@@ -114,6 +101,43 @@ public class ItemLoader implements Callback{
 
         LayoutParams lp = new LayoutParams((int)fallWidth, (int)(height/width*fallWidth));
         view.setLayoutParams(lp);
+    }
+
+    private class BitmapRef {
+        static public final int PENDING = 0;
+        static public final int LOADING = 1;
+        static public final int LOADED = 2;
+        public int status;
+
+        public SoftReference<Bitmap> bitmapRef;
+
+        public BitmapRef() {
+            status = PENDING;
+        }
+
+        public void set(Bitmap bitmap) {
+            bitmapRef = new SoftReference<Bitmap>(bitmap);
+        }
+
+        //If the bitmap is null, then it may has been recycled. So we
+        //assume that there is no picture that bitmap is null and set status
+        //to pending.
+        public Bitmap get() {
+            if (status == LOADED && bitmapRef != null && bitmapRef.get() != null) {
+                return bitmapRef.get();
+            } else {
+                status = PENDING;
+                return null;
+            }
+        }
+
+        private boolean loaded() {
+            if (status == LOADED && bitmapRef != null && bitmapRef.get() != null) {
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
     private class LoaderThread extends HandlerThread implements Callback {
@@ -128,10 +152,12 @@ public class ItemLoader implements Callback{
             public boolean handleMessage(Message msg) {
                 for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
                     String path = entry.getValue();
-                    if (!containsInCache(path)) {
+                    BitmapRef cacheRef = mCacheMap.get(path);
+                    if (!cacheRef.loaded()) {
                         try {
                             Bitmap bitmap = decodeBitmap(path);
-                            mCacheMap.put(path, new SoftReference(bitmap));
+                            cacheRef.set(bitmap);
+                            cacheRef.status = BitmapRef.LOADED;
                         } catch (OutOfMemoryError e) {
                             e.printStackTrace();
                         }

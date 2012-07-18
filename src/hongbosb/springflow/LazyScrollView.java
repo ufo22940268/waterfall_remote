@@ -61,28 +61,26 @@ public class LazyScrollView extends ScrollView {
     @Override
     protected void onScrollChanged(int l, int t, int ol, int ot) {
         if (sLoadingFinished) {
-            recycle(t);
+            boolean scrollDown = t - ot > 0 ? true : false;
+            //recycle(t, scrollDown);
             startLoadingImages();
         }
     }
 
 
-    private void recycle(int top) {
-        int recY = top - getScreenHeight();   
-        if (recY < 0) {
-            return;
-        } else {
-            for (int i = 0; i < mFalls.length; i ++) {
-                ViewGroup parent = mFalls[i];
-                int sum = 0;
-                for (int j = 0; j < parent.getChildCount(); j ++) {
-                    ImageView view = (ImageView)parent.getChildAt(j);
-                    sum += view.getHeight();
-                    if (sum <= recY) {
-                        view.setImageBitmap(null);
-                    } else {
-                        break;
-                    }
+    private void recycle(int top, boolean scrollDown) {
+        int recUp = top - getScreenHeight();   
+        int recDown = top + 2*getScreenHeight();
+        for (int i = 0; i < mFalls.length; i ++) {
+            ViewGroup parent = mFalls[i];
+            int sum = 0;
+            for (int j = 0; j < parent.getChildCount(); j ++) {
+                ImageView view = (ImageView)parent.getChildAt(j);
+                sum += view.getHeight();
+                if (sum <= recUp && recUp > 0 && scrollDown) {
+                    view.setImageBitmap(null);
+                } else if (sum >= recDown && !scrollDown) {
+                    view.setImageBitmap(null);
                 }
             }
         }
