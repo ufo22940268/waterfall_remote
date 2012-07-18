@@ -19,7 +19,7 @@ public class ItemLoader implements Callback{
     static public final int MESSAGE_REFRESH_VIEW = 1;
 
     private ConcurrentHashMap<ImageView, String> mPendingMap;
-    private ConcurrentHashMap<String, BitmapRef> mCacheMap;
+    private ConcurrentHashMap<String, BitmapHolder> mCacheMap;
 
     private LoaderThread mLoaderThread;
 
@@ -28,7 +28,7 @@ public class ItemLoader implements Callback{
     private Context mContext;
 
     public ItemLoader(Context context) {
-        mCacheMap = new ConcurrentHashMap<String, BitmapRef>();
+        mCacheMap = new ConcurrentHashMap<String, BitmapHolder>();
         mPendingMap = new ConcurrentHashMap<ImageView, String>();
         mContext = context;
 
@@ -36,19 +36,17 @@ public class ItemLoader implements Callback{
     }
     
     public void loadImage(ImageView view, String path) {
-        Bitmap bitmap = getBitmapFromCache(path);
-        if (bitmap != null) {
-            view.setImageBitmap(bitmap);
-            setImageParams(view, bitmap);
+        boolean loaded = loadPhotoFromCache(view, path);
+        if (loaded) {
+            mPendingMap.remove(view);
         } else {
             mPendingMap.put(view, path);
-            mCacheMap.put(path, new BitmapRef());
             requestLoading();
         }
     }
 
     private Bitmap getBitmapFromCache(String path) {
-        BitmapRef ref = mCacheMap.get(path);
+        BitmapHolder ref = mCacheMap.get(path);
         if (ref != null) {
             return ref.get();
         } else {
@@ -79,19 +77,55 @@ public class ItemLoader implements Callback{
     }
 
     private void refreshViews() {
-        for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
-            String path = entry.getValue();
-            ImageView view = entry.getKey();
-            Bitmap bitmap = getBitmapFromCache(path);
-            if (bitmap != null) {
-                view.setImageBitmap(bitmap);
-                setImageParams(view, bitmap);
-                mPendingMap.remove(view);
-            } else {
-                view.setImageResource(R.drawable.loading);
-                requestLoading();
+        Iterator<ImageView> iter = mPendingMap.keySet().iterator();
+        while (iter.hasNext()) {
+            ImageView view = iter.next();
+            String path = mPendingMap.get(view);
+
+            boolean loaded = loadPhotoFromCache(view, path);
+            if (loaded) {
+                iter.remove();
             }
         }
+
+        if (mPendingMap.size() != 0) {
+            requestLoading();
+        }
+    }
+
+    private boolean loadPhotoFromCache(ImageView view, String path) {
+        BitmapHolder holder = mCacheMap.get(path);
+        if (holder == null) {
+            holder = new BitmapHolder();
+            mCacheMap.put(path, holder);
+        } else if (holder.status == BitmapHolder.LOADED) {
+            if (holder.bitmapRef == null) {
+                setDrawable(view, R.drawable.loading);
+                return true;
+            }
+
+            Bitmap bitmap = holder.bitmapRef.get();
+            if (bitmap != null) {
+                setBitmap(view, bitmap);
+                return true;
+            }
+
+            holder.bitmapRef = null;
+        }
+
+        setDrawable(view, R.drawable.loading);
+        holder.status = BitmapHolder.PENDING;
+        return false;
+    }
+
+    private void setBitmap(ImageView view, Bitmap bitmap) {
+        view.setImageBitmap(bitmap);
+        setImageParams(view, bitmap);
+    }
+
+    private void setDrawable(ImageView view, int res) {
+        view.setImageResource(R.drawable.loading);
+        //TODO Resize the image to meet requirement.
     }
 
     private void setImageParams(ImageView view, Bitmap bitmap) {
@@ -103,7 +137,7 @@ public class ItemLoader implements Callback{
         view.setLayoutParams(lp);
     }
 
-    private class BitmapRef {
+    private class BitmapHolder {
         static public final int PENDING = 0;
         static public final int LOADING = 1;
         static public final int LOADED = 2;
@@ -111,7 +145,7 @@ public class ItemLoader implements Callback{
 
         public SoftReference<Bitmap> bitmapRef;
 
-        public BitmapRef() {
+        public BitmapHolder() {
             status = PENDING;
         }
 
@@ -149,22 +183,23 @@ public class ItemLoader implements Callback{
         }
 
         @Override
-            public boolean handleMessage(Message msg) {
-                for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
-                    String path = entry.getValue();
-                    BitmapRef cacheRef = mCacheMap.get(path);
-                    try {
-                        Bitmap bitmap = decodeBitmap(path);
-                        cacheRef.set(bitmap);
-                        cacheRef.status = BitmapRef.LOADED;
-                    } catch (OutOfMemoryError e) {
-                        e.printStackTrace();
-                    }
+        public boolean handleMessage(Message msg) {
+            for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
+                String path = entry.getValue();
+                BitmapHolder cacheRef = mCacheMap.get(path);
+                try {
+                    Bitmap bitmap = decodeBitmap(path);
+                    cacheRef.set(bitmap);
+                    cacheRef.status = BitmapHolder.LOADED;
+                    mCacheMap.put(path, cacheRef);
+                } catch (OutOfMemoryError e) {
+                    e.printStackTrace();
                 }
-
-                mMainHandler.sendEmptyMessage(MESSAGE_REFRESH_VIEW);
-                return true;
             }
+
+            mMainHandler.sendEmptyMessage(MESSAGE_REFRESH_VIEW);
+            return true;
+        }
 
         private void requestLoading() {
             if (mLoaderHandler == null) {

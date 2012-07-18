@@ -36,7 +36,7 @@ public class LazyScrollView extends ScrollView {
 
     private void startLoadingImages() {
         LayoutInflater inflater = LayoutInflater.from(getContext());
-        for (int i = 0; i < 10; i ++) {
+        for (int i = 0; i < 50; i ++) {
             ImageView view = (ImageView)inflater.inflate(R.layout.item, null);
             addImage(view, i);
         }
@@ -54,7 +54,7 @@ public class LazyScrollView extends ScrollView {
     protected void onScrollChanged(int l, int t, int ol, int ot) {
         if (bottomMeeted(t)) {
             //recycle(t);
-            startLoadingImages();
+            //startLoadingImages();
         }
     }
 
@@ -104,7 +104,7 @@ public class LazyScrollView extends ScrollView {
     private void addImage(ImageView view, int index) {
         setImageWidth(view);
 
-        ViewGroup parent = getFall(index);        
+        ViewGroup parent = getShortestFall();        
         parent.addView(view);
 
         mLoader.loadImage(view, mFiles[index%(mFiles.length)]);
@@ -115,8 +115,25 @@ public class LazyScrollView extends ScrollView {
         view.setLayoutParams(lp);
     }
 
-    private ViewGroup getFall(int pos) {
-        return mFalls[pos%mFallCnt];
+    private ViewGroup getShortestFall() {
+        int min = 100000;
+        int index = 0;
+        for (int i = 0; i < mFalls.length; i ++) {
+            if (getChildsHeight(mFalls[i]) < min) {
+                min = getChildsHeight(mFalls[i]);
+                index = i;
+            }
+        }
+
+        return mFalls[index];
+    }
+
+    private int getChildsHeight(ViewGroup parent) {
+        int sum = 0;
+        for (int i = 0; i < parent.getChildCount(); i ++) {
+            sum += parent.getChildAt(i).getHeight();
+        }
+        return sum;
     }
 
     private void initDivideInfo(Context context) {
