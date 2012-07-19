@@ -38,9 +38,10 @@ public class ItemLoader implements Callback{
         mItemWidth = itemWidth;
     }
     
-    public void loadImage(ImageView view, String path) {
+    public void loadImage(ItemView view) {
         mIdle = false;
 
+        String path = view.getPath();
         boolean loaded = loadPhotoFromCache(view, path);
         if (loaded) {
             mPendingMap.remove(view);

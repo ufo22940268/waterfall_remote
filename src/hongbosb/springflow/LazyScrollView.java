@@ -56,21 +56,25 @@ public class LazyScrollView extends ScrollView {
 
     @Override
     protected void onScrollChanged(int l, int t, int ol, int ot) {
-        //recycle or reloadview abnormal.
+        //recycle or reloadview abnormal. Because when the numbers of image doesn't comes very
+        //large, it won't crash. So just don't recycle bitmap temperory.
+        //
         //recycle(t, ot);
-        reloadViews();
+        //reloadViews();
 
         if (bottomMeeted(t) && mLoader.isIdle()) {
             startLoadingImages();
         }
     }
 
+    //
     private void reloadViews() {
         for (int i = 0; i < mFallCnt; i ++) {
             ViewGroup parent = mFalls[i];
             for (int j = parent.getChildCount() - 1; j >= 0; j --) {
                 ItemView child = (ItemView)parent.getChildAt(j);
-                if (child.isDirty() && isVisible(child)) {
+                //if (child.isDirty() && isVisible(child)) {
+                if (child.isDirty()) {
                     reloadView(child);
                 } else {
                     break;
@@ -80,7 +84,7 @@ public class LazyScrollView extends ScrollView {
     }
 
     private void reloadView(ItemView view) {
-        mLoader.loadImage(view, mFiles[mItemCnt%(mFiles.length)]);
+        mLoader.loadImage(view);
     }
 
     private boolean isVisible(View view) {
@@ -144,8 +148,8 @@ public class LazyScrollView extends ScrollView {
     private void addImage(ItemView view, int index) {
         ViewGroup parent = getFall();        
         parent.addView(view);
-
-        mLoader.loadImage(view, mFiles[index%(mFiles.length)]);
+        view.setPath(mFiles[index%(mFiles.length)]);
+        mLoader.loadImage(view);
     }
 
     private ViewGroup getFall() {

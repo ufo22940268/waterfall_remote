@@ -36,9 +36,9 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
     private void testOneImage(ItemLoader loader, String fileName) {
         //TODO still need to find a better way to test handler.
-        ImageView view = new ImageView(getActivity());
-
-        loader.loadImage(view, fileName);
+        ItemView view = new ItemView(getActivity());
+        view.setPath(fileName);
+        loader.loadImage(view);
 
         Message msg = new Message();
         msg.what = ItemLoader.MESSAGE_REQUEST_LOAD;
