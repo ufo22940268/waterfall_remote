@@ -29,7 +29,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     public void testLoadImage() throws Exception {
-        ItemLoader loader = new ItemLoader(getActivity());
+        ItemLoader loader = new ItemLoader(getActivity(), 120);
         testOneImage(loader,  "images/1.jpg");
         testOneImage(loader,  "images/1.jpg");
     }

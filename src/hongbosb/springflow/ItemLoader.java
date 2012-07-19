@@ -22,26 +22,35 @@ public class ItemLoader implements Callback{
     private ConcurrentHashMap<String, BitmapHolder> mCacheMap;
 
     private LoaderThread mLoaderThread;
+    private boolean mIdle;
 
     private Handler mMainHandler;
+    private int mItemWidth;
 
     private Context mContext;
 
-    public ItemLoader(Context context) {
+    public ItemLoader(Context context, int itemWidth) {
         mCacheMap = new ConcurrentHashMap<String, BitmapHolder>();
         mPendingMap = new ConcurrentHashMap<ImageView, String>();
         mContext = context;
 
         mMainHandler = new Handler(this);
+        mItemWidth = itemWidth;
     }
     
     public void loadImage(ImageView view, String path) {
+        mIdle = false;
+
         boolean loaded = loadPhotoFromCache(view, path);
         if (loaded) {
             mPendingMap.remove(view);
         } else {
             mPendingMap.put(view, path);
             requestLoading();
+        }
+
+        if (mPendingMap.size() == 0 && !mMainHandler.hasMessages(MESSAGE_REQUEST_LOAD)) {
+            mIdle = true;
         }
     }
 
@@ -62,6 +71,8 @@ public class ItemLoader implements Callback{
     public boolean handleMessage(Message msg) {
         switch (msg.what) {
             case MESSAGE_REQUEST_LOAD:
+                mIdle = false;
+
                 if (mLoaderThread == null) {
                     mLoaderThread = new LoaderThread();
                     mLoaderThread.start();
@@ -90,7 +101,13 @@ public class ItemLoader implements Callback{
 
         if (mPendingMap.size() != 0) {
             requestLoading();
+        } else if (!mMainHandler.hasMessages(MESSAGE_REQUEST_LOAD)) {
+            mIdle = true;
         }
+    }
+
+    public boolean isIdle() {
+        return mIdle;
     }
 
     private boolean loadPhotoFromCache(ImageView view, String path) {
@@ -131,9 +148,8 @@ public class ItemLoader implements Callback{
     private void setImageParams(ImageView view, Bitmap bitmap) {
         float height = bitmap.getHeight();
         float width = bitmap.getWidth();
-        float fallWidth = view.getWidth();
 
-        LayoutParams lp = new LayoutParams((int)fallWidth, (int)(height/width*fallWidth));
+        LayoutParams lp = new LayoutParams((int)mItemWidth, (int)(height/width*mItemWidth));
         view.setLayoutParams(lp);
     }
 

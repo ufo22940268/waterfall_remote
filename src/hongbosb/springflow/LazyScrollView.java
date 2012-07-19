@@ -8,6 +8,8 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageView;
+import android.graphics.Rect;
+import android.view.View;
 
 public class LazyScrollView extends ScrollView {
 
@@ -17,6 +19,7 @@ public class LazyScrollView extends ScrollView {
     private String[] mFiles;
     private ItemLoader mLoader;
     private ViewGroup[] mFalls;
+    private int mItemCnt;
 
     static public final int EXPECTED_WIDTH = 150;
 
@@ -29,16 +32,17 @@ public class LazyScrollView extends ScrollView {
         protected void onFinishInflate() {
             addVerticalLayouts();
             mFiles = LoadUtils.listAssets(getContext());
-            mLoader = new ItemLoader(getContext());
+            mLoader = new ItemLoader(getContext(), mFallWidth);
 
             startLoadingImages();
         }
 
     private void startLoadingImages() {
         LayoutInflater inflater = LayoutInflater.from(getContext());
-        for (int i = 0; i < 50; i ++) {
-            ImageView view = (ImageView)inflater.inflate(R.layout.item, null);
-            addImage(view, i);
+        for (int i = 0; i < 12; i ++) {
+            ItemView view = (ItemView)inflater.inflate(R.layout.item, null);
+            addImage(view, mItemCnt);
+            mItemCnt += 1;
         }
     }
 
@@ -52,10 +56,39 @@ public class LazyScrollView extends ScrollView {
 
     @Override
     protected void onScrollChanged(int l, int t, int ol, int ot) {
-        if (bottomMeeted(t)) {
-            //recycle(t);
-            //startLoadingImages();
+        //recycle or reloadview abnormal.
+        //recycle(t, ot);
+        reloadViews();
+
+        if (bottomMeeted(t) && mLoader.isIdle()) {
+            startLoadingImages();
         }
+    }
+
+    private void reloadViews() {
+        for (int i = 0; i < mFallCnt; i ++) {
+            ViewGroup parent = mFalls[i];
+            for (int j = parent.getChildCount() - 1; j >= 0; j --) {
+                ItemView child = (ItemView)parent.getChildAt(j);
+                if (child.isDirty() && isVisible(child)) {
+                    reloadView(child);
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    private void reloadView(ItemView view) {
+        mLoader.loadImage(view, mFiles[mItemCnt%(mFiles.length)]);
+    }
+
+    private boolean isVisible(View view) {
+        Rect inner = new Rect();
+        view.getHitRect(inner);
+        Rect outer = new Rect();
+        getDrawingRect(outer);
+        return Rect.intersects(inner, outer);
     }
 
     private boolean bottomMeeted(int top) {
@@ -68,22 +101,29 @@ public class LazyScrollView extends ScrollView {
     }
 
 
-    private void recycle(int top, boolean scrollDown) {
+    //Recycle the view one screen distance from visible area.
+    private void recycle(int top, int oldTop) {
+        boolean scrollDown = top > oldTop ? true : false;
         int recUp = top - getScreenHeight();   
         int recDown = top + 2*getScreenHeight();
         for (int i = 0; i < mFalls.length; i ++) {
             ViewGroup parent = mFalls[i];
             int sum = 0;
             for (int j = 0; j < parent.getChildCount(); j ++) {
-                ImageView view = (ImageView)parent.getChildAt(j);
+                ItemView view = (ItemView)parent.getChildAt(j);
                 sum += view.getHeight();
                 if (sum <= recUp && recUp > 0 && scrollDown) {
-                    view.setImageBitmap(null);
+                    recycleBitmap(view);
                 } else if (sum >= recDown && !scrollDown) {
-                    view.setImageBitmap(null);
+                    recycleBitmap(view);
                 }
             }
         }
+    }
+
+    private void recycleBitmap(ItemView item) {
+        item.setImageBitmap(null); 
+        item.setDirty(true); 
     }
 
     private void addVerticalLayouts() {
@@ -101,31 +141,15 @@ public class LazyScrollView extends ScrollView {
         }
     }
 
-    private void addImage(ImageView view, int index) {
-        setImageWidth(view);
-
-        ViewGroup parent = getShortestFall();        
+    private void addImage(ItemView view, int index) {
+        ViewGroup parent = getFall();        
         parent.addView(view);
 
         mLoader.loadImage(view, mFiles[index%(mFiles.length)]);
     }
 
-    private void setImageWidth(ImageView view) {
-        LayoutParams lp = new LayoutParams(mFallWidth, LayoutParams.WRAP_CONTENT);
-        view.setLayoutParams(lp);
-    }
-
-    private ViewGroup getShortestFall() {
-        int min = 100000;
-        int index = 0;
-        for (int i = 0; i < mFalls.length; i ++) {
-            if (getChildsHeight(mFalls[i]) < min) {
-                min = getChildsHeight(mFalls[i]);
-                index = i;
-            }
-        }
-
-        return mFalls[index];
+    private ViewGroup getFall() {
+        return mFalls[mItemCnt%mFallCnt];
     }
 
     private int getChildsHeight(ViewGroup parent) {
