@@ -10,3 +10,12 @@ tests/build.xml
 tests/local.properties
 tests/proguard-project.txt
 tests/project.properties
+.exrc
+Android.mk
+Session.vim
+cscope.files
+cscope.in.out
+cscope.out
+cscope.po.out
+tags
+.gitignore
