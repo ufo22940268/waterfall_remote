@@ -7,7 +7,7 @@ import android.util.AttributeSet;
 public class ItemView extends ImageView {
 
     private boolean mDirty = false;
-    private String mPath;
+    private String mUrl;
 
     public ItemView(Context context, AttributeSet attr) {
         super(context, attr);
@@ -17,12 +17,12 @@ public class ItemView extends ImageView {
         super(context);
     }
 
-    public void setPath(String path) {
-        mPath = path;
+    public void setUrl(String url) {
+        mUrl = url;
     }
 
-    public String getPath() {
-        return mPath;
+    public String getUrl() {
+        return mUrl;
     }
 
     public boolean isDirty() {

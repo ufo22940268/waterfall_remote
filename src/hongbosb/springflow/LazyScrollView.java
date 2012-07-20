@@ -16,7 +16,7 @@ public class LazyScrollView extends ScrollView {
     private int mFallCnt;
     private int mFallWidth;
 
-    private String[] mFiles;
+    private String[] mUrls;
     private ItemLoader mLoader;
     private ViewGroup[] mFalls;
     private int mItemCnt;
@@ -31,7 +31,8 @@ public class LazyScrollView extends ScrollView {
     @Override
         protected void onFinishInflate() {
             addVerticalLayouts();
-            mFiles = LoadUtils.listAssets(getContext());
+            //mFiles = LoadUtils.listAssets(getContext());
+            mUrls = new JsonParser().getImageUrls();
             mLoader = new ItemLoader(getContext(), mFallWidth);
 
             startLoadingImages();
@@ -148,7 +149,7 @@ public class LazyScrollView extends ScrollView {
     private void addImage(ItemView view, int index) {
         ViewGroup parent = getFall();        
         parent.addView(view);
-        view.setPath(mFiles[index%(mFiles.length)]);
+        view.setUrl(mUrls[index%(mUrls.length)]);
         mLoader.loadImage(view);
     }
 

@@ -9,10 +9,16 @@ import android.graphics.*;
 import android.content.Context;
 import android.widget.LinearLayout.LayoutParams;
 
+import java.net.HttpURLConnection;
 import java.lang.ref.SoftReference;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.*;
 import java.util.*;
+import java.io.InputStream;
+import java.io.BufferedInputStream;
+import java.io.FileOutputStream;
+import java.io.File;
+import java.net.URL;
 
 public class ItemLoader implements Callback{
     static public final int MESSAGE_REQUEST_LOAD = 0;
@@ -41,12 +47,12 @@ public class ItemLoader implements Callback{
     public void loadImage(ItemView view) {
         mIdle = false;
 
-        String path = view.getPath();
-        boolean loaded = loadPhotoFromCache(view, path);
+        String url = view.getUrl();
+        boolean loaded = loadPhotoFromCache(view, url);
         if (loaded) {
             mPendingMap.remove(view);
         } else {
-            mPendingMap.put(view, path);
+            mPendingMap.put(view, url);
             requestLoading();
         }
 
@@ -55,8 +61,8 @@ public class ItemLoader implements Callback{
         }
     }
 
-    private Bitmap getBitmapFromCache(String path) {
-        BitmapHolder ref = mCacheMap.get(path);
+    private Bitmap getBitmapFromCache(String url) {
+        BitmapHolder ref = mCacheMap.get(url);
         if (ref != null) {
             return ref.get();
         } else {
@@ -92,9 +98,9 @@ public class ItemLoader implements Callback{
         Iterator<ImageView> iter = mPendingMap.keySet().iterator();
         while (iter.hasNext()) {
             ImageView view = iter.next();
-            String path = mPendingMap.get(view);
+            String url = mPendingMap.get(view);
 
-            boolean loaded = loadPhotoFromCache(view, path);
+            boolean loaded = loadPhotoFromCache(view, url);
             if (loaded) {
                 iter.remove();
             }
@@ -111,11 +117,11 @@ public class ItemLoader implements Callback{
         return mIdle;
     }
 
-    private boolean loadPhotoFromCache(ImageView view, String path) {
-        BitmapHolder holder = mCacheMap.get(path);
+    private boolean loadPhotoFromCache(ImageView view, String url) {
+        BitmapHolder holder = mCacheMap.get(url);
         if (holder == null) {
             holder = new BitmapHolder();
-            mCacheMap.put(path, holder);
+            mCacheMap.put(url, holder);
         } else if (holder.status == BitmapHolder.LOADED) {
             if (holder.bitmapRef == null) {
                 setDrawable(view, R.drawable.loading);
@@ -202,13 +208,13 @@ public class ItemLoader implements Callback{
         @Override
         public boolean handleMessage(Message msg) {
             for (Map.Entry<ImageView, String> entry : mPendingMap.entrySet()) {
-                String path = entry.getValue();
-                BitmapHolder cacheRef = mCacheMap.get(path);
+                String url = entry.getValue();
+                BitmapHolder cacheRef = mCacheMap.get(url);
                 try {
-                    Bitmap bitmap = decodeBitmap(path);
+                    Bitmap bitmap = getBitmapFromWeb(url);
                     cacheRef.set(bitmap);
                     cacheRef.status = BitmapHolder.LOADED;
-                    mCacheMap.put(path, cacheRef);
+                    mCacheMap.put(url, cacheRef);
                 } catch (OutOfMemoryError e) {
                     e.printStackTrace();
                 }
@@ -226,9 +232,36 @@ public class ItemLoader implements Callback{
             mLoaderHandler.sendEmptyMessage(0);
         }
 
-        private Bitmap decodeBitmap(String path) {
+        private Bitmap getBitmapFromWeb(String url) {
+            System.out.println("++++++++++++++++++++" + url + "++++++++++++++++++++");
+            File file = null;
+            HttpURLConnection conn = null;
             try {
-                InputStream in = mContext.getResources().getAssets().open(path);
+                URL conUrl = new URL(url);
+                conn = (HttpURLConnection)conUrl.openConnection();
+                InputStream in = new BufferedInputStream(conn.getInputStream());
+
+                FileCache fileCache = new FileCache();
+                file = fileCache.getFile(url);
+                FileOutputStream out = new FileOutputStream(file);
+                Utils.copyStream(in, out);
+                out.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                conn.disconnect();
+            }
+
+            if (file != null) {
+                return BitmapFactory.decodeFile(file.getPath());
+            } else {
+                return null;
+            }
+        }
+
+        private Bitmap decodeBitmap(String url) {
+            try {
+                InputStream in = mContext.getResources().getAssets().open(url);
                 Bitmap result = BitmapFactory.decodeStream(in);
 
                 if (in != null) {
